@@ -32,7 +32,7 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("initial_pose_qw", 1.0);
   declare_parameter("use_odom", true);
   declare_parameter("use_imu", false);
-  declare_parameter("enable_debug", false);
+  declare_parameter("enable_debug", true);
 }
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -233,7 +233,7 @@ void PCLLocalization::initializePubSub()
   //   std::bind(&PCLLocalization::odomReceived, this, std::placeholders::_1));
 
   cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-    "cloud", rclcpp::SensorDataQoS(),
+    "spot/lidar/points", rclcpp::SensorDataQoS(),
     std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1));
 
   imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
@@ -503,7 +503,7 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   geometry_msgs::msg::TransformStamped transform_stamped;
   transform_stamped.header.stamp = msg->header.stamp;
   transform_stamped.header.frame_id = global_frame_id_;
-  transform_stamped.child_frame_id = base_frame_id_;
+  transform_stamped.child_frame_id = odom_frame_id_;
   transform_stamped.transform.translation.x = static_cast<double>(final_transformation(0, 3));
   transform_stamped.transform.translation.y = static_cast<double>(final_transformation(1, 3));
   transform_stamped.transform.translation.z = static_cast<double>(final_transformation(2, 3));
