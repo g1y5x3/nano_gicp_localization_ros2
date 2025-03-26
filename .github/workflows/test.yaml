@@ -25,7 +25,7 @@ jobs:
                   apt update
                   rosdep update
                   cd ~/ros2_ws/src
-                  git clone https://github.com/rsasaki0109/ndt_omp_ros2.git -b humble
+                  git clone https://github.com/g1y5x3/nano_gicp_localization_ros2.git
                   rosdep install -r -y --from-paths . --ignore-src
               shell: bash
             - name: Build packages
