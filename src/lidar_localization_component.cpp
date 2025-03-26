@@ -20,9 +20,9 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("scan_max_range", 100.0);
   declare_parameter("scan_min_range", 1.0);
   declare_parameter("scan_period", 0.1);
-  declare_parameter("use_pcd_map", false);
+  declare_parameter("use_pcd_map", true);
   declare_parameter("map_path", "src/spot_ros2_gazebo/spot_navigation/maps/simple_tunnel.pcd");
-  declare_parameter("set_initial_pose", false);
+  declare_parameter("set_initial_pose", true);
   declare_parameter("initial_pose_x", 0.0);
   declare_parameter("initial_pose_y", 0.0);
   declare_parameter("initial_pose_z", 0.0);
@@ -30,7 +30,7 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("initial_pose_qy", 0.0);
   declare_parameter("initial_pose_qz", 0.0);
   declare_parameter("initial_pose_qw", 1.0);
-  declare_parameter("use_odom", false);
+  declare_parameter("use_odom", true);
   declare_parameter("use_imu", false);
   declare_parameter("enable_debug", false);
 }
@@ -164,8 +164,11 @@ void PCLLocalization::initializeParameters()
   get_parameter("ndt_max_iterations", ndt_max_iterations_);
   get_parameter("transform_epsilon", transform_epsilon_);
   get_parameter("voxel_leaf_size", voxel_leaf_size_);
+
+  // Can this be replaced by Cropbox from PCL??
   get_parameter("scan_max_range", scan_max_range_);
   get_parameter("scan_min_range", scan_min_range_);
+
   get_parameter("scan_period", scan_period_);
   get_parameter("use_pcd_map", use_pcd_map_);
   get_parameter("map_path", map_path_);
@@ -221,13 +224,13 @@ void PCLLocalization::initializePubSub()
     "initialpose", rclcpp::SystemDefaultsQoS(),
     std::bind(&PCLLocalization::initialPoseReceived, this, std::placeholders::_1));
 
-  map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-    "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-    std::bind(&PCLLocalization::mapReceived, this, std::placeholders::_1));
+  // map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+  //   "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+  //   std::bind(&PCLLocalization::mapReceived, this, std::placeholders::_1));
 
-  odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-    "odom", rclcpp::SensorDataQoS(),
-    std::bind(&PCLLocalization::odomReceived, this, std::placeholders::_1));
+  // odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+  //   "odom", rclcpp::SensorDataQoS(),
+  //   std::bind(&PCLLocalization::odomReceived, this, std::placeholders::_1));
 
   cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
     "cloud", rclcpp::SensorDataQoS(),
@@ -329,52 +332,52 @@ void PCLLocalization::mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr
   RCLCPP_INFO(get_logger(), "mapReceived end");
 }
 
-void PCLLocalization::odomReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
-{
-  if (!use_odom_) {return;}
-  RCLCPP_INFO(get_logger(), "odomReceived");
+// void PCLLocalization::odomReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
+// {
+//   if (!use_odom_) {return;}
+//   RCLCPP_INFO(get_logger(), "odomReceived");
 
-  double current_odom_received_time = msg->header.stamp.sec +
-    msg->header.stamp.nanosec * 1e-9;
-  double dt_odom = current_odom_received_time - last_odom_received_time_;
-  last_odom_received_time_ = current_odom_received_time;
-  if (dt_odom > 1.0 /* [sec] */) {
-    RCLCPP_WARN(this->get_logger(), "odom time interval is too large");
-    return;
-  }
-  if (dt_odom < 0.0 /* [sec] */) {
-    RCLCPP_WARN(this->get_logger(), "odom time interval is negative");
-    return;
-  }
+//   double current_odom_received_time = msg->header.stamp.sec +
+//     msg->header.stamp.nanosec * 1e-9;
+//   double dt_odom = current_odom_received_time - last_odom_received_time_;
+//   last_odom_received_time_ = current_odom_received_time;
+//   if (dt_odom > 1.0 /* [sec] */) {
+//     RCLCPP_WARN(this->get_logger(), "odom time interval is too large");
+//     return;
+//   }
+//   if (dt_odom < 0.0 /* [sec] */) {
+//     RCLCPP_WARN(this->get_logger(), "odom time interval is negative");
+//     return;
+//   }
 
-  tf2::Quaternion previous_quat_tf;
-  double roll, pitch, yaw;
-  tf2::fromMsg(corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation, previous_quat_tf);
+//   tf2::Quaternion previous_quat_tf;
+//   double roll, pitch, yaw;
+//   tf2::fromMsg(corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation, previous_quat_tf);
 
-  tf2::Matrix3x3(previous_quat_tf).getRPY(roll, pitch, yaw);
+//   tf2::Matrix3x3(previous_quat_tf).getRPY(roll, pitch, yaw);
 
-  roll += msg->twist.twist.angular.x * dt_odom;
-  pitch += msg->twist.twist.angular.y * dt_odom;
-  yaw += msg->twist.twist.angular.z * dt_odom;
+//   roll += msg->twist.twist.angular.x * dt_odom;
+//   pitch += msg->twist.twist.angular.y * dt_odom;
+//   yaw += msg->twist.twist.angular.z * dt_odom;
 
-  Eigen::Quaterniond quat_eig =
-    Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-    Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-    Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+//   Eigen::Quaterniond quat_eig =
+//     Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
+//     Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+//     Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
 
-  geometry_msgs::msg::Quaternion quat_msg = tf2::toMsg(quat_eig);
+//   geometry_msgs::msg::Quaternion quat_msg = tf2::toMsg(quat_eig);
 
-  Eigen::Vector3d odom{
-    msg->twist.twist.linear.x,
-    msg->twist.twist.linear.y,
-    msg->twist.twist.linear.z};
-  Eigen::Vector3d delta_position = quat_eig.matrix() * dt_odom * odom;
+//   Eigen::Vector3d odom{
+//     msg->twist.twist.linear.x,
+//     msg->twist.twist.linear.y,
+//     msg->twist.twist.linear.z};
+//   Eigen::Vector3d delta_position = quat_eig.matrix() * dt_odom * odom;
 
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x += delta_position.x();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y += delta_position.y();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z += delta_position.z();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation = quat_msg;
-}
+//   corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x += delta_position.x();
+//   corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y += delta_position.y();
+//   corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z += delta_position.z();
+//   corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation = quat_msg;
+// }
 
 void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 {
