@@ -306,31 +306,31 @@ void PCLLocalization::initialPoseReceived(const geometry_msgs::msg::PoseWithCova
   RCLCPP_INFO(get_logger(), "initialPoseReceived end");
 }
 
-void PCLLocalization::mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
-{
-  RCLCPP_INFO(get_logger(), "mapReceived");
-  pcl::PointCloud<pcl::PointXYZI>::Ptr map_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+// void PCLLocalization::mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
+// {
+//   RCLCPP_INFO(get_logger(), "mapReceived");
+//   pcl::PointCloud<pcl::PointXYZI>::Ptr map_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
 
-  if (msg->header.frame_id != global_frame_id_) {
-    RCLCPP_WARN(this->get_logger(), "map_frame_id does not match　global_frame_id");
-    return;
-  }
+//   if (msg->header.frame_id != global_frame_id_) {
+//     RCLCPP_WARN(this->get_logger(), "map_frame_id does not match　global_frame_id");
+//     return;
+//   }
 
-  pcl::fromROSMsg(*msg, *map_cloud_ptr);
+//   pcl::fromROSMsg(*msg, *map_cloud_ptr);
 
-  if (registration_method_ == "GICP" || registration_method_ == "GICP_OMP") {
-    pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
-    voxel_grid_filter_.setInputCloud(map_cloud_ptr);
-    voxel_grid_filter_.filter(*filtered_cloud_ptr);
-    registration_->setInputTarget(filtered_cloud_ptr);
+//   if (registration_method_ == "GICP" || registration_method_ == "GICP_OMP") {
+//     pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
+//     voxel_grid_filter_.setInputCloud(map_cloud_ptr);
+//     voxel_grid_filter_.filter(*filtered_cloud_ptr);
+//     registration_->setInputTarget(filtered_cloud_ptr);
 
-  } else {
-    registration_->setInputTarget(map_cloud_ptr);
-  }
+//   } else {
+//     registration_->setInputTarget(map_cloud_ptr);
+//   }
 
-  map_recieved_ = true;
-  RCLCPP_INFO(get_logger(), "mapReceived end");
-}
+//   map_recieved_ = true;
+//   RCLCPP_INFO(get_logger(), "mapReceived end");
+// }
 
 // void PCLLocalization::odomReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
 // {
@@ -379,6 +379,7 @@ void PCLLocalization::mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr
 //   corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation = quat_msg;
 // }
 
+// NOTE: this part has not been tested yet!
 void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 {
   if (!use_imu_) {return;}
@@ -431,18 +432,19 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
 
   // Transform the filtered and pruned point cloud into the odom frame.
   // https://github.com/rsasaki0109/lidar_localization_ros2/issues/27
-  sensor_msgs::msg::PointCloud2 msg_odom;
+  sensor_msgs::msg::PointCloud2::SharedPtr msg_odom = std::make_shared<sensor_msgs::msg::PointCloud2>();
   try {
     // The lookupTransform arguments are target frame, source frame, and time.
-    msg_odom.header.frame_id = msg->header.frame_id; //Set the header of the pointcloud to the original frame
-    tfbuffer_.transform(*msg, msg_odom, "odom", tf2::durationFromSec(0.1)); //TODO get odom frame from params
+    RCLCPP_INFO(get_logger(), "cloudReceived");
+    msg_odom->header.frame_id = odom_frame_id_;
+    tfbuffer_.transform(*msg, *msg_odom, odom_frame_id_, tf2::durationFromSec(0.1));
   } catch (tf2::TransformException &ex) {
     RCLCPP_WARN(get_logger(), "%s", ex.what());
     return;
   }
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
-  pcl::fromROSMsg(msg_odom, *cloud_ptr);
+  pcl::fromROSMsg(*msg_odom, *cloud_ptr);
 
   if (use_imu_) {
     double received_time = msg->header.stamp.sec +
