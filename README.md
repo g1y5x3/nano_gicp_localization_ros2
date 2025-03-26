@@ -1,10 +1,10 @@
 # lidar_localization_ros2
-A ROS2 package of 3D LIDAR-based Localization.
+A ROS2 package of 3D LIDAR-based Localization that provides `/map` to `/odom`
 
-<img src="./images/path.png" width="640px">
+<!-- <img src="./images/path.png" width="640px">
 
 Green: path, Red: map  
-(the 5x5 grids in size of 50m × 50m)
+(the 5x5 grids in size of 50m × 50m) -->
 
 ## Requirements
 
@@ -13,15 +13,15 @@ Green: path, Red: map
 ## IO
 - input  
 /cloud  (sensor_msgs/PointCloud2)  
-/map  (sensor_msgs/PointCloud2)  
 /initialpose (geometry_msgs/PoseStamed)(when `set_initial_pose` is false)  
 /odom (nav_msgs/Odometry)(optional)   
-/imu  (sensor_msgs/Imu)(optional)  
+~~/imu  (sensor_msgs/Imu)(optional)~~NOT TESTED  
 
 - output  
 /pcl_pose (geometry_msgs/PoseStamped)  
 /path (nav_msgs/Path)  
 /initial_map (sensor_msgs/PointCloud2)(when `use_pcd_map` is true)  
+/tf (tf2_msgs/TFMessage) [map → odom]
 
 ## params
 
