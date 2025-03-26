@@ -21,7 +21,7 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("scan_min_range", 1.0);
   declare_parameter("scan_period", 0.1);
   declare_parameter("use_pcd_map", false);
-  declare_parameter("map_path", "/map/map.pcd");
+  declare_parameter("map_path", "src/spot_ros2_gazebo/spot_navigation/maps/simple_tunnel.pcd");
   declare_parameter("set_initial_pose", false);
   declare_parameter("initial_pose_x", 0.0);
   declare_parameter("initial_pose_y", 0.0);
@@ -425,8 +425,21 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
 {
   if (!map_recieved_ || !initialpose_recieved_) {return;}
   RCLCPP_INFO(get_logger(), "cloudReceived");
+
+  // Transform the filtered and pruned point cloud into the odom frame.
+  // https://github.com/rsasaki0109/lidar_localization_ros2/issues/27
+  sensor_msgs::msg::PointCloud2 msg_odom;
+  try {
+    // The lookupTransform arguments are target frame, source frame, and time.
+    msg_odom.header.frame_id = msg->header.frame_id; //Set the header of the pointcloud to the original frame
+    tfbuffer_.transform(*msg, msg_odom, "odom", tf2::durationFromSec(0.1)); //TODO get odom frame from params
+  } catch (tf2::TransformException &ex) {
+    RCLCPP_WARN(get_logger(), "%s", ex.what());
+    return;
+  }
+
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
-  pcl::fromROSMsg(*msg, *cloud_ptr);
+  pcl::fromROSMsg(msg_odom, *cloud_ptr);
 
   if (use_imu_) {
     double received_time = msg->header.stamp.sec +
@@ -446,6 +459,7 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
       tmp.push_back(p);
     }
   }
+
   pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_ptr(new pcl::PointCloud<pcl::PointXYZI>(tmp));
   registration_->setInputSource(tmp_ptr);
 
