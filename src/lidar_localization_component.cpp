@@ -19,7 +19,7 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("voxel_leaf_size", 0.2);
   declare_parameter("scan_period", 0.1);
   declare_parameter("use_pcd_map", true);
-  declare_parameter("map_path", "src/spot_ros2_gazebo/spot_navigation/maps/simple_tunnel.pcd");
+  declare_parameter("map_path", "map.pcd");
   declare_parameter("set_initial_pose", true);
   declare_parameter("initial_pose_x", 0.0);
   declare_parameter("initial_pose_y", 0.0);
@@ -219,7 +219,7 @@ void PCLLocalization::initializePubSub()
     std::bind(&PCLLocalization::initialPoseReceived, this, std::placeholders::_1));
 
   cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-    "spot/lidar/points", rclcpp::SensorDataQoS(),
+    "cloud", rclcpp::SensorDataQoS(),
     std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1));
 
   // imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
