@@ -59,7 +59,6 @@ public:
   // void mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
   void imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
-  // void gnssReceived();
 
   rclcpp::Clock clock_;
   

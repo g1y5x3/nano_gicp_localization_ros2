@@ -395,11 +395,11 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
   pcl::fromROSMsg(*msg_odom, *cloud_ptr);
 
-  if (use_imu_) {
-    double received_time = msg->header.stamp.sec +
-      msg->header.stamp.nanosec * 1e-9;
-    lidar_undistortion_.adjustDistortion(cloud_ptr, received_time);
-  }
+  // if (use_imu_) {
+  //   double received_time = msg->header.stamp.sec +
+  //     msg->header.stamp.nanosec * 1e-9;
+  //   lidar_undistortion_.adjustDistortion(cloud_ptr, received_time);
+  // }
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
   voxel_grid_filter_.setInputCloud(cloud_ptr);
@@ -468,9 +468,9 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   transform_stamped.header.stamp    = msg->header.stamp;
   transform_stamped.header.frame_id = global_frame_id_;
   transform_stamped.child_frame_id  = odom_frame_id_;
-  transform_stamped.transform.translation.x = static_cast<double>(final_transformation(0, 3));
-  transform_stamped.transform.translation.y = static_cast<double>(final_transformation(1, 3));
-  transform_stamped.transform.translation.z = static_cast<double>(final_transformation(2, 3));
+  transform_stamped.transform.translation.x = tran.x();
+  transform_stamped.transform.translation.y = tran.y();
+  transform_stamped.transform.translation.z = tran.z();
   transform_stamped.transform.rotation.w = quat_eig.w();
   transform_stamped.transform.rotation.x = quat_eig.x();
   transform_stamped.transform.rotation.y = quat_eig.y();
