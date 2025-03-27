@@ -97,8 +97,6 @@ public:
   std::string odom_frame_id_;
   std::string base_frame_id_;
   std::string registration_method_;
-  double scan_max_range_;
-  double scan_min_range_;
   double scan_period_;
   double score_threshold_;
   double ndt_resolution_;

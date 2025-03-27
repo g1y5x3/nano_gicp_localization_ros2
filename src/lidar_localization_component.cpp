@@ -17,8 +17,6 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("ndt_num_threads", 4);
   declare_parameter("transform_epsilon", 0.01);
   declare_parameter("voxel_leaf_size", 0.2);
-  declare_parameter("scan_max_range", 100.0);
-  declare_parameter("scan_min_range", 1.0);
   declare_parameter("scan_period", 0.1);
   declare_parameter("use_pcd_map", true);
   declare_parameter("map_path", "src/spot_ros2_gazebo/spot_navigation/maps/simple_tunnel.pcd");
@@ -164,11 +162,6 @@ void PCLLocalization::initializeParameters()
   get_parameter("ndt_max_iterations", ndt_max_iterations_);
   get_parameter("transform_epsilon", transform_epsilon_);
   get_parameter("voxel_leaf_size", voxel_leaf_size_);
-
-  // Can this be replaced by Cropbox from PCL??
-  get_parameter("scan_max_range", scan_max_range_);
-  get_parameter("scan_min_range", scan_min_range_);
-
   get_parameter("scan_period", scan_period_);
   get_parameter("use_pcd_map", use_pcd_map_);
   get_parameter("map_path", map_path_);
@@ -193,8 +186,6 @@ void PCLLocalization::initializeParameters()
   RCLCPP_INFO(get_logger(),"ndt_num_threads: %d", ndt_num_threads_);
   RCLCPP_INFO(get_logger(),"transform_epsilon: %lf", transform_epsilon_);
   RCLCPP_INFO(get_logger(),"voxel_leaf_size: %lf", voxel_leaf_size_);
-  RCLCPP_INFO(get_logger(),"scan_max_range: %lf", scan_max_range_);
-  RCLCPP_INFO(get_logger(),"scan_min_range: %lf", scan_min_range_);
   RCLCPP_INFO(get_logger(),"scan_period: %lf", scan_period_);
   RCLCPP_INFO(get_logger(),"use_pcd_map: %d", use_pcd_map_);
   RCLCPP_INFO(get_logger(),"map_path: %s", map_path_.c_str());
