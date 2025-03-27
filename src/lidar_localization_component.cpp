@@ -126,7 +126,6 @@ CallbackReturn PCLLocalization::on_cleanup(const rclcpp_lifecycle::State &)
   initial_map_pub_.reset();
   path_pub_.reset();
   pose_pub_.reset();
-  odom_sub_.reset();
   cloud_sub_.reset();
   imu_sub_.reset();
 
@@ -375,7 +374,7 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   }
 
   // Filter and crop the received and transformed point cloud
-  pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
   pcl::fromROSMsg(*msg_odom, *cloud_ptr);
 
   // if (use_imu_) {
@@ -384,21 +383,23 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   //   lidar_undistortion_.adjustDistortion(cloud_ptr, received_time);
   // }
 
-  pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
+  pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
   voxel_grid_filter_.setInputCloud(cloud_ptr);
   voxel_grid_filter_.filter(*filtered_cloud_ptr);
   
   // ICP
   registration_->setInputSource(filtered_cloud_ptr);
 
-  Eigen::Affine3d affine;
-  tf2::fromMsg(corrent_pose_with_cov_stamped_ptr_->pose.pose, affine);
-  Eigen::Matrix4f init_guess = affine.matrix().cast<float>();
+  Eigen::Affine3d eigen_pose;
+  tf2::fromMsg(corrent_pose_with_cov_stamped_ptr_->pose.pose, eigen_pose);
+  Eigen::Matrix4f init_guess = eigen_pose.matrix().cast<float>();
 
-  pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud(new pcl::PointCloud<pcl::PointXYZI>);
   rclcpp::Clock system_clock;
   rclcpp::Time time_align_start = system_clock.now();
+
+  pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
   registration_->align(*output_cloud, init_guess);
+  
   rclcpp::Time time_align_end = system_clock.now();
 
   bool has_converged = registration_->hasConverged();
@@ -429,7 +430,7 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   // TODO add cov
   pose_pub_->publish(*corrent_pose_with_cov_stamped_ptr_);
 
-  geometry_msgs::msg::PoseStamped::SharedPtr pose_stamped_ptr(new geometry_msgs::msg::PoseStamped);
+  geometry_msgs::msg::PoseStamped::SharedPtr pose_stamped_ptr = std::make_shared<geometry_msgs::msg::PoseStamped>();
   pose_stamped_ptr->header.stamp = msg->header.stamp;
   pose_stamped_ptr->header.frame_id = global_frame_id_;
   pose_stamped_ptr->pose = corrent_pose_with_cov_stamped_ptr_->pose.pose;
