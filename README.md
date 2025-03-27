@@ -1,5 +1,5 @@
 # lidar_localization_ros2
-A ROS2 package of 3D LIDAR-based Localization that provides `/map` to `/odom`
+A ROS2 package of 3D LIDAR-based Localization that also provides `/map` → `/odom`
 
 <!-- <img src="./images/path.png" width="640px">
 
@@ -15,7 +15,7 @@ Green: path, Red: map
 /cloud  (sensor_msgs/PointCloud2)  
 /initialpose (geometry_msgs/PoseStamed)(when `set_initial_pose` is false)  
 /odom (nav_msgs/Odometry)(optional)   
-~~/imu  (sensor_msgs/Imu)(optional)~~NOT TESTED  
+~~/imu  (sensor_msgs/Imu)(optional)~~NOT ENABLED  
 
 - output  
 /pcl_pose (geometry_msgs/PoseStamped)  
@@ -52,21 +52,3 @@ Green: path, Red: map
 |enable_debug|bool|false|whether debug is done or not|
 
 ## demo
-
-demo data(ROS1) by Tier IV  
-https://data.tier4.jp/rosbag_details/?id=212  
-To use ros1 rosbag , use [rosbags](https://pypi.org/project/rosbags/).  
-The Velodyne VLP-16 was used in this data.
-
-Before running, put `bin_tc-2017-10-15-ndmap.pcd` into your `map` directory and  
-edit the `map_path` parameter of `localization.yaml` in the `param` directory accordingly.
-```
-rviz2 -d src/lidar_localization_ros2/rviz/localization.rviz
-ros2 launch lidar_localization_ros2 lidar_localization.launch.py
-ros2 bag play tc_2017-10-15-15-34-02_free_download/
-```
-
-<img src="./images/path.png" width="640px">
-
-Green: path, Red: map  
-(the 5x5 grids in size of 50m × 50m)

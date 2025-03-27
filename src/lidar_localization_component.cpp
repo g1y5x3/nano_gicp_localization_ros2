@@ -220,25 +220,21 @@ void PCLLocalization::initializePubSub()
     "initial_map",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
-  initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-    "initialpose", rclcpp::SystemDefaultsQoS(),
-    std::bind(&PCLLocalization::initialPoseReceived, this, std::placeholders::_1));
-
   // map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
   //   "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
   //   std::bind(&PCLLocalization::mapReceived, this, std::placeholders::_1));
 
-  // odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-  //   "odom", rclcpp::SensorDataQoS(),
-  //   std::bind(&PCLLocalization::odomReceived, this, std::placeholders::_1));
+  initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    "initialpose", rclcpp::SystemDefaultsQoS(),
+    std::bind(&PCLLocalization::initialPoseReceived, this, std::placeholders::_1));
 
   cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
     "spot/lidar/points", rclcpp::SensorDataQoS(),
     std::bind(&PCLLocalization::cloudReceived, this, std::placeholders::_1));
 
-  imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
-    "imu", rclcpp::SensorDataQoS(),
-    std::bind(&PCLLocalization::imuReceived, this, std::placeholders::_1));
+  // imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
+  //   "imu", rclcpp::SensorDataQoS(),
+  //   std::bind(&PCLLocalization::imuReceived, this, std::placeholders::_1));
 
   RCLCPP_INFO(get_logger(), "initializePubSub end");
 }
@@ -332,51 +328,50 @@ void PCLLocalization::initialPoseReceived(const geometry_msgs::msg::PoseWithCova
 //   RCLCPP_INFO(get_logger(), "mapReceived end");
 // }
 
-// NOTE: this part has not been tested yet!
-void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
-{
-  if (!use_imu_) {return;}
+// void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
+// {
+//   if (!use_imu_) {return;}
 
-  sensor_msgs::msg::Imu tf_converted_imu;
+//   sensor_msgs::msg::Imu tf_converted_imu;
 
-  try {
-    const geometry_msgs::msg::TransformStamped transform = tfbuffer_.lookupTransform(
-     base_frame_id_, msg->header.frame_id, tf2::TimePointZero);
+//   try {
+//     const geometry_msgs::msg::TransformStamped transform = tfbuffer_.lookupTransform(
+//      base_frame_id_, msg->header.frame_id, tf2::TimePointZero);
 
-    geometry_msgs::msg::Vector3Stamped angular_velocity, linear_acceleration, transformed_angular_velocity, transformed_linear_acceleration;
-    geometry_msgs::msg::Quaternion  transformed_quaternion;
+//     geometry_msgs::msg::Vector3Stamped angular_velocity, linear_acceleration, transformed_angular_velocity, transformed_linear_acceleration;
+//     geometry_msgs::msg::Quaternion  transformed_quaternion;
 
-    angular_velocity.header = msg->header;
-    angular_velocity.vector = msg->angular_velocity;
-    linear_acceleration.header = msg->header;
-    linear_acceleration.vector = msg->linear_acceleration;
+//     angular_velocity.header = msg->header;
+//     angular_velocity.vector = msg->angular_velocity;
+//     linear_acceleration.header = msg->header;
+//     linear_acceleration.vector = msg->linear_acceleration;
 
-    tf2::doTransform(angular_velocity, transformed_angular_velocity, transform);
-    tf2::doTransform(linear_acceleration, transformed_linear_acceleration, transform);
+//     tf2::doTransform(angular_velocity, transformed_angular_velocity, transform);
+//     tf2::doTransform(linear_acceleration, transformed_linear_acceleration, transform);
 
-    tf_converted_imu.angular_velocity = transformed_angular_velocity.vector;
-    tf_converted_imu.linear_acceleration = transformed_linear_acceleration.vector;
-    tf_converted_imu.orientation = transformed_quaternion;
+//     tf_converted_imu.angular_velocity = transformed_angular_velocity.vector;
+//     tf_converted_imu.linear_acceleration = transformed_linear_acceleration.vector;
+//     tf_converted_imu.orientation = transformed_quaternion;
 
-  }
-  catch (tf2::TransformException& ex)
-  {
-    std::cout << "Failed to lookup transform" << std::endl;
-    RCLCPP_WARN(this->get_logger(), "Failed to lookup transform.");
-    return;
-  }
+//   }
+//   catch (tf2::TransformException& ex)
+//   {
+//     std::cout << "Failed to lookup transform" << std::endl;
+//     RCLCPP_WARN(this->get_logger(), "Failed to lookup transform.");
+//     return;
+//   }
 
-  Eigen::Vector3f angular_velo{tf_converted_imu.angular_velocity.x, tf_converted_imu.angular_velocity.y,
-    tf_converted_imu.angular_velocity.z};
-  Eigen::Vector3f acc{tf_converted_imu.linear_acceleration.x, tf_converted_imu.linear_acceleration.y, tf_converted_imu.linear_acceleration.z};
-  Eigen::Quaternionf quat{msg->orientation.w, msg->orientation.x, msg->orientation.y,
-    msg->orientation.z};
-  double imu_time = msg->header.stamp.sec +
-    msg->header.stamp.nanosec * 1e-9;
+//   Eigen::Vector3f angular_velo{tf_converted_imu.angular_velocity.x, tf_converted_imu.angular_velocity.y,
+//     tf_converted_imu.angular_velocity.z};
+//   Eigen::Vector3f acc{tf_converted_imu.linear_acceleration.x, tf_converted_imu.linear_acceleration.y, tf_converted_imu.linear_acceleration.z};
+//   Eigen::Quaternionf quat{msg->orientation.w, msg->orientation.x, msg->orientation.y,
+//     msg->orientation.z};
+//   double imu_time = msg->header.stamp.sec +
+//     msg->header.stamp.nanosec * 1e-9;
 
-  lidar_undistortion_.getImu(angular_velo, acc, quat, imu_time);
+//   lidar_undistortion_.getImu(angular_velo, acc, quat, imu_time);
 
-}
+// }
 
 void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)
 {
@@ -396,6 +391,7 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
     return;
   }
 
+  // Filter and crop the received and transformed point cloud
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
   pcl::fromROSMsg(*msg_odom, *cloud_ptr);
 
@@ -418,6 +414,7 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
     }
   }
 
+  // ICP
   pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_ptr(new pcl::PointCloud<pcl::PointXYZI>(tmp));
   registration_->setInputSource(tmp_ptr);
 
@@ -443,27 +440,22 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   }
 
   Eigen::Matrix4f final_transformation = registration_->getFinalTransformation();
+  Eigen::Vector3d tran = final_transformation.block<3,1>(0,3).cast<double>();
   Eigen::Matrix3d rot_mat = final_transformation.block<3, 3>(0, 0).cast<double>();
   Eigen::Quaterniond quat_eig(rot_mat);
-  geometry_msgs::msg::Quaternion quat_msg = tf2::toMsg(quat_eig);
+  // TODO check sign flip
 
-  corrent_pose_with_cov_stamped_ptr_->header.stamp = msg->header.stamp;
+  corrent_pose_with_cov_stamped_ptr_->header.stamp    = msg->header.stamp;
   corrent_pose_with_cov_stamped_ptr_->header.frame_id = global_frame_id_;
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x = static_cast<double>(final_transformation(0, 3));
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y = static_cast<double>(final_transformation(1, 3));
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z = static_cast<double>(final_transformation(2, 3));
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation = quat_msg;
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x = tran.x();
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y = tran.y();
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z = tran.z();
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.w = quat_eig.w();
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.x = quat_eig.x();
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.y = quat_eig.y();
+  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.z = quat_eig.z();
+  // TODO add cov
   pose_pub_->publish(*corrent_pose_with_cov_stamped_ptr_);
-
-  geometry_msgs::msg::TransformStamped transform_stamped;
-  transform_stamped.header.stamp = msg->header.stamp;
-  transform_stamped.header.frame_id = global_frame_id_;
-  transform_stamped.child_frame_id = odom_frame_id_;
-  transform_stamped.transform.translation.x = static_cast<double>(final_transformation(0, 3));
-  transform_stamped.transform.translation.y = static_cast<double>(final_transformation(1, 3));
-  transform_stamped.transform.translation.z = static_cast<double>(final_transformation(2, 3));
-  transform_stamped.transform.rotation = quat_msg;
-  broadcaster_.sendTransform(transform_stamped);
 
   geometry_msgs::msg::PoseStamped::SharedPtr pose_stamped_ptr(new geometry_msgs::msg::PoseStamped);
   pose_stamped_ptr->header.stamp = msg->header.stamp;
@@ -471,6 +463,19 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   pose_stamped_ptr->pose = corrent_pose_with_cov_stamped_ptr_->pose.pose;
   path_ptr_->poses.push_back(*pose_stamped_ptr);
   path_pub_->publish(*path_ptr_);
+
+  geometry_msgs::msg::TransformStamped transform_stamped;
+  transform_stamped.header.stamp    = msg->header.stamp;
+  transform_stamped.header.frame_id = global_frame_id_;
+  transform_stamped.child_frame_id  = odom_frame_id_;
+  transform_stamped.transform.translation.x = static_cast<double>(final_transformation(0, 3));
+  transform_stamped.transform.translation.y = static_cast<double>(final_transformation(1, 3));
+  transform_stamped.transform.translation.z = static_cast<double>(final_transformation(2, 3));
+  transform_stamped.transform.rotation.w = quat_eig.w();
+  transform_stamped.transform.rotation.x = quat_eig.x();
+  transform_stamped.transform.rotation.y = quat_eig.y();
+  transform_stamped.transform.rotation.z = quat_eig.z();
+  broadcaster_.sendTransform(transform_stamped);
 
   last_scan_ptr_ = msg;
 
