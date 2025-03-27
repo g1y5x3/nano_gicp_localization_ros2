@@ -57,7 +57,6 @@ public:
   void initializeRegistration();
   void initialPoseReceived(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
   // void mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
-  // void odomReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg);
   void imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
   // void gnssReceived();

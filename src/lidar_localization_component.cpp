@@ -332,53 +332,6 @@ void PCLLocalization::initialPoseReceived(const geometry_msgs::msg::PoseWithCova
 //   RCLCPP_INFO(get_logger(), "mapReceived end");
 // }
 
-// void PCLLocalization::odomReceived(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
-// {
-//   if (!use_odom_) {return;}
-//   RCLCPP_INFO(get_logger(), "odomReceived");
-
-//   double current_odom_received_time = msg->header.stamp.sec +
-//     msg->header.stamp.nanosec * 1e-9;
-//   double dt_odom = current_odom_received_time - last_odom_received_time_;
-//   last_odom_received_time_ = current_odom_received_time;
-//   if (dt_odom > 1.0 /* [sec] */) {
-//     RCLCPP_WARN(this->get_logger(), "odom time interval is too large");
-//     return;
-//   }
-//   if (dt_odom < 0.0 /* [sec] */) {
-//     RCLCPP_WARN(this->get_logger(), "odom time interval is negative");
-//     return;
-//   }
-
-//   tf2::Quaternion previous_quat_tf;
-//   double roll, pitch, yaw;
-//   tf2::fromMsg(corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation, previous_quat_tf);
-
-//   tf2::Matrix3x3(previous_quat_tf).getRPY(roll, pitch, yaw);
-
-//   roll += msg->twist.twist.angular.x * dt_odom;
-//   pitch += msg->twist.twist.angular.y * dt_odom;
-//   yaw += msg->twist.twist.angular.z * dt_odom;
-
-//   Eigen::Quaterniond quat_eig =
-//     Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-//     Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-//     Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-
-//   geometry_msgs::msg::Quaternion quat_msg = tf2::toMsg(quat_eig);
-
-//   Eigen::Vector3d odom{
-//     msg->twist.twist.linear.x,
-//     msg->twist.twist.linear.y,
-//     msg->twist.twist.linear.z};
-//   Eigen::Vector3d delta_position = quat_eig.matrix() * dt_odom * odom;
-
-//   corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x += delta_position.x();
-//   corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y += delta_position.y();
-//   corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z += delta_position.z();
-//   corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation = quat_msg;
-// }
-
 // NOTE: this part has not been tested yet!
 void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 {
