@@ -354,15 +354,7 @@ void PCLLocalization::initialPoseReceived(const geometry_msgs::msg::PoseWithCova
 //     tf_converted_imu.orientation = transformed_quaternion;
 
 //   }
-//   catch (tf2::TransformException& ex)
-//   {
-//     std::cout << "Failed to lookup transform" << std::endl;
-//     RCLCPP_WARN(this->get_logger(), "Failed to lookup transform.");
-//     return;
-//   }
-
-//   Eigen::Vector3f angular_velo{tf_converted_imu.angular_velocity.x, tf_converted_imu.angular_velocity.y,
-//     tf_converted_imu.angular_velocity.z};
+//   catch (tf2::TransformException& ex)tmp_ptr
 //   Eigen::Vector3f acc{tf_converted_imu.linear_acceleration.x, tf_converted_imu.linear_acceleration.y, tf_converted_imu.linear_acceleration.z};
 //   Eigen::Quaternionf quat{msg->orientation.w, msg->orientation.x, msg->orientation.y,
 //     msg->orientation.z};
@@ -404,23 +396,12 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
   voxel_grid_filter_.setInputCloud(cloud_ptr);
   voxel_grid_filter_.filter(*filtered_cloud_ptr);
-
-  double r;
-  pcl::PointCloud<pcl::PointXYZI> tmp;
-  for (const auto & p : filtered_cloud_ptr->points) {
-    r = sqrt(pow(p.x, 2.0) + pow(p.y, 2.0));
-    if (scan_min_range_ < r && r < scan_max_range_) {
-      tmp.push_back(p);
-    }
-  }
-
+  
   // ICP
-  pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_ptr(new pcl::PointCloud<pcl::PointXYZI>(tmp));
-  registration_->setInputSource(tmp_ptr);
+  registration_->setInputSource(filtered_cloud_ptr);
 
   Eigen::Affine3d affine;
   tf2::fromMsg(corrent_pose_with_cov_stamped_ptr_->pose.pose, affine);
-
   Eigen::Matrix4f init_guess = affine.matrix().cast<float>();
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud(new pcl::PointCloud<pcl::PointXYZI>);
