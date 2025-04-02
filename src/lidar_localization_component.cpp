@@ -120,6 +120,7 @@ CallbackReturn PCLLocalization::on_cleanup(const rclcpp_lifecycle::State &)
   RCLCPP_INFO(get_logger(), "Cleaning Up");
   initial_pose_sub_.reset();
   initial_map_pub_.reset();
+  map_sub_.reset();
   cloud_sub_.reset();
   imu_sub_.reset();
 
@@ -197,7 +198,7 @@ void PCLLocalization::initializePubSub()
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
   map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-    "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    "map", rclcpp::QoS(rclcpp::KeepLast(1)).reliable(),
     std::bind(&PCLLocalization::mapReceived, this, std::placeholders::_1));
 
   initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
