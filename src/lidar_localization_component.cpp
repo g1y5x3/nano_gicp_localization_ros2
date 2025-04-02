@@ -18,7 +18,7 @@ PCLLocalization::PCLLocalization(const rclcpp::NodeOptions & options)
   declare_parameter("transform_epsilon", 0.01);
   declare_parameter("voxel_leaf_size", 0.2);
   declare_parameter("scan_period", 0.1);
-  declare_parameter("use_pcd_map", true);
+  declare_parameter("use_pcd_map", false);
   declare_parameter("map_path", "map.pcd");
   declare_parameter("set_initial_pose", true);
   declare_parameter("initial_pose_x", 0.0);
@@ -54,8 +54,6 @@ CallbackReturn PCLLocalization::on_activate(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(get_logger(), "Activating");
 
-  pose_pub_->on_activate();
-  path_pub_->on_activate();
   initial_map_pub_->on_activate();
 
   if (set_initial_pose_) {
@@ -111,8 +109,6 @@ CallbackReturn PCLLocalization::on_deactivate(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(get_logger(), "Deactivating");
 
-  pose_pub_->on_deactivate();
-  path_pub_->on_deactivate();
   initial_map_pub_->on_deactivate();
 
   RCLCPP_INFO(get_logger(), "Deactivating end");
@@ -124,8 +120,6 @@ CallbackReturn PCLLocalization::on_cleanup(const rclcpp_lifecycle::State &)
   RCLCPP_INFO(get_logger(), "Cleaning Up");
   initial_pose_sub_.reset();
   initial_map_pub_.reset();
-  path_pub_.reset();
-  pose_pub_.reset();
   cloud_sub_.reset();
   imu_sub_.reset();
 
@@ -198,21 +192,13 @@ void PCLLocalization::initializePubSub()
 {
   RCLCPP_INFO(get_logger(), "initializePubSub");
 
-  // pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-  //   "pcl_pose",
-  //   rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
-
-  // path_pub_ = create_publisher<nav_msgs::msg::Path>(
-  //   "path",
-  //   rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
-
   initial_map_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>(
     "initial_map",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
-  // map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-  //   "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-  //   std::bind(&PCLLocalization::mapReceived, this, std::placeholders::_1));
+  map_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+    "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    std::bind(&PCLLocalization::mapReceived, this, std::placeholders::_1));
 
   initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "initialpose", rclcpp::SystemDefaultsQoS(),
@@ -286,74 +272,36 @@ void PCLLocalization::initialPoseReceived(const geometry_msgs::msg::PoseWithCova
   }
   initialpose_recieved_ = true;
   corrent_pose_with_cov_stamped_ptr_ = msg;
-  pose_pub_->publish(*corrent_pose_with_cov_stamped_ptr_);
 
   cloudReceived(last_scan_ptr_);
   RCLCPP_INFO(get_logger(), "initialPoseReceived end");
 }
 
-// void PCLLocalization::mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
-// {
-//   RCLCPP_INFO(get_logger(), "mapReceived");
-//   pcl::PointCloud<pcl::PointXYZI>::Ptr map_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+void PCLLocalization::mapReceived(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
+{
+  RCLCPP_INFO(get_logger(), "mapReceived");
+  pcl::PointCloud<pcl::PointXYZI>::Ptr map_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
 
-//   if (msg->header.frame_id != global_frame_id_) {
-//     RCLCPP_WARN(this->get_logger(), "map_frame_id does not match　global_frame_id");
-//     return;
-//   }
+  if (msg->header.frame_id != global_frame_id_) {
+    RCLCPP_WARN(this->get_logger(), "map_frame_id does not match　global_frame_id");
+    return;
+  }
 
-//   pcl::fromROSMsg(*msg, *map_cloud_ptr);
+  pcl::fromROSMsg(*msg, *map_cloud_ptr);
 
-//   if (registration_method_ == "GICP" || registration_method_ == "GICP_OMP") {
-//     pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
-//     voxel_grid_filter_.setInputCloud(map_cloud_ptr);
-//     voxel_grid_filter_.filter(*filtered_cloud_ptr);
-//     registration_->setInputTarget(filtered_cloud_ptr);
+  if (registration_method_ == "GICP" || registration_method_ == "GICP_OMP") {
+    pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>());
+    voxel_grid_filter_.setInputCloud(map_cloud_ptr);
+    voxel_grid_filter_.filter(*filtered_cloud_ptr);
+    registration_->setInputTarget(filtered_cloud_ptr);
 
-//   } else {
-//     registration_->setInputTarget(map_cloud_ptr);
-//   }
+  } else {
+    registration_->setInputTarget(map_cloud_ptr);
+  }
 
-//   map_recieved_ = true;
-//   RCLCPP_INFO(get_logger(), "mapReceived end");
-// }
-
-// void PCLLocalization::imuReceived(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
-// {
-//   if (!use_imu_) {return;}
-
-//   sensor_msgs::msg::Imu tf_converted_imu;
-
-//   try {
-//     const geometry_msgs::msg::TransformStamped transform = tfbuffer_.lookupTransform(
-//      base_frame_id_, msg->header.frame_id, tf2::TimePointZero);
-
-//     geometry_msgs::msg::Vector3Stamped angular_velocity, linear_acceleration, transformed_angular_velocity, transformed_linear_acceleration;
-//     geometry_msgs::msg::Quaternion  transformed_quaternion;
-
-//     angular_velocity.header = msg->header;
-//     angular_velocity.vector = msg->angular_velocity;
-//     linear_acceleration.header = msg->header;
-//     linear_acceleration.vector = msg->linear_acceleration;
-
-//     tf2::doTransform(angular_velocity, transformed_angular_velocity, transform);
-//     tf2::doTransform(linear_acceleration, transformed_linear_acceleration, transform);
-
-//     tf_converted_imu.angular_velocity = transformed_angular_velocity.vector;
-//     tf_converted_imu.linear_acceleration = transformed_linear_acceleration.vector;
-//     tf_converted_imu.orientation = transformed_quaternion;
-
-//   }
-//   catch (tf2::TransformException& ex)tmp_ptr
-//   Eigen::Vector3f acc{tf_converted_imu.linear_acceleration.x, tf_converted_imu.linear_acceleration.y, tf_converted_imu.linear_acceleration.z};
-//   Eigen::Quaternionf quat{msg->orientation.w, msg->orientation.x, msg->orientation.y,
-//     msg->orientation.z};
-//   double imu_time = msg->header.stamp.sec +
-//     msg->header.stamp.nanosec * 1e-9;
-
-//   lidar_undistortion_.getImu(angular_velo, acc, quat, imu_time);
-
-// }
+  map_recieved_ = true;
+  RCLCPP_INFO(get_logger(), "mapReceived end");
+}
 
 void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)
 {
