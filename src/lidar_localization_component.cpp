@@ -198,13 +198,13 @@ void PCLLocalization::initializePubSub()
 {
   RCLCPP_INFO(get_logger(), "initializePubSub");
 
-  pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-    "pcl_pose",
-    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+  // pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+  //   "pcl_pose",
+  //   rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
-  path_pub_ = create_publisher<nav_msgs::msg::Path>(
-    "path",
-    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+  // path_pub_ = create_publisher<nav_msgs::msg::Path>(
+  //   "path",
+  //   rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
   initial_map_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>(
     "initial_map",
@@ -416,26 +416,27 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   Eigen::Vector3d tran = final_transformation.block<3,1>(0,3).cast<double>();
   Eigen::Matrix3d rot_mat = final_transformation.block<3, 3>(0, 0).cast<double>();
   Eigen::Quaterniond quat_eig(rot_mat);
+
   // TODO check sign flip
 
-  corrent_pose_with_cov_stamped_ptr_->header.stamp    = msg->header.stamp;
-  corrent_pose_with_cov_stamped_ptr_->header.frame_id = global_frame_id_;
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x = tran.x();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y = tran.y();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z = tran.z();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.w = quat_eig.w();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.x = quat_eig.x();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.y = quat_eig.y();
-  corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.z = quat_eig.z();
-  // TODO add cov
-  pose_pub_->publish(*corrent_pose_with_cov_stamped_ptr_);
+  // corrent_pose_with_cov_stamped_ptr_->header.stamp    = msg->header.stamp;
+  // corrent_pose_with_cov_stamped_ptr_->header.frame_id = global_frame_id_;
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.position.x = tran.x();
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.position.y = tran.y();
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.position.z = tran.z();
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.w = quat_eig.w();
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.x = quat_eig.x();
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.y = quat_eig.y();
+  // corrent_pose_with_cov_stamped_ptr_->pose.pose.orientation.z = quat_eig.z();
+  // // TODO add cov
+  // pose_pub_->publish(*corrent_pose_with_cov_stamped_ptr_);
 
-  geometry_msgs::msg::PoseStamped::SharedPtr pose_stamped_ptr = std::make_shared<geometry_msgs::msg::PoseStamped>();
-  pose_stamped_ptr->header.stamp = msg->header.stamp;
-  pose_stamped_ptr->header.frame_id = global_frame_id_;
-  pose_stamped_ptr->pose = corrent_pose_with_cov_stamped_ptr_->pose.pose;
-  path_ptr_->poses.push_back(*pose_stamped_ptr);
-  path_pub_->publish(*path_ptr_);
+  // geometry_msgs::msg::PoseStamped::SharedPtr pose_stamped_ptr = std::make_shared<geometry_msgs::msg::PoseStamped>();
+  // pose_stamped_ptr->header.stamp = msg->header.stamp;
+  // pose_stamped_ptr->header.frame_id = global_frame_id_;
+  // pose_stamped_ptr->pose = corrent_pose_with_cov_stamped_ptr_->pose.pose;
+  // path_ptr_->poses.push_back(*pose_stamped_ptr);
+  // path_pub_->publish(*path_ptr_);
 
   geometry_msgs::msg::TransformStamped transform_stamped;
   transform_stamped.header.stamp    = msg->header.stamp;
